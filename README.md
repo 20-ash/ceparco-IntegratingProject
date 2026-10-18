@@ -11,7 +11,7 @@ Edge detection is a foundational step in remote sensing, medical image processin
 
 Chang et al. (2023) expanded the Sobel operator to 5x5 size with four directional filters (0◦, 90◦, 45◦, 135◦) considering two additional diagonal directions. Results showed that compared to 3x3, the 5x5 operator is more insensitive to changes and less affected by noise since it takes more pixels or greater area into consideration. This helps provide clearer edge features which makes edge detection clearer and cleaner. Moreover, with the implementation of the four directional filter instead of two directional, more abundant textures were shown during edge detection. Their implementation, however, was optimized for NVIDIA GPUs using CUDA, which requires dedicated hardware and incurring data transfer overhead that limits deployment on standard systems.
 
-This project addresses the gap by optimizing the four directional 5x5 Sobel operator for CPUs using **AVX2 SIMD** instructions. Through applying data-level parallelism, the group sees the vision to achieve significant speedup without requiring specialized hardware.
+This project addresses the gap by optimizing the four directional 5x5 Sobel operator for CPUs using **AVX2 SIMD** instructions. Through applying data-level parallelism, the group aims to achieve significant speedup compared to C implementation without requiring specialized hardware. Furthermore, the group will compare and evaluate the 5×5 versus 3×3 kernels, as well as two‑directional versus four‑directional implementations.
 
 ## Proposed Algorithm
 The filters of the four-directional 5x5 Sobel operator are defined as follows (Chang et al., 2023):
