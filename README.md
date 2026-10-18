@@ -1,16 +1,32 @@
 # Sobel and Canny Edge Detection with AVX2
 
-A scalar C baseline and an AVX2 implementation of Sobel and Canny edge detection on 8-bit grayscale images, with a per-stage benchmark of scalar against AVX2.
+Advanced Computer Architecture integrating project, 1st term 2026–2027 (data-level parallelism, SIMD/AVX2 assembly).
 
-> **Status:** planning. The design below is the plan; update each section as the code lands.
+**Group members:** _add names and the stages each person owns._
 
-## Goals
+> **Status:** proposal. The design below is the plan; update each section as the code lands.
 
-- Implement Sobel and the full Canny pipeline in scalar C and in AVX2.
-- Check that every AVX2 stage produces output identical to its scalar version.
-- Report time and speedup (scalar time / AVX2 time) for each stage and for the whole pipeline.
+## Abstract
 
-**In scope:** 8-bit grayscale input, a scalar reference for every stage, timing of scalar against AVX2.
+This project implements Sobel and Canny edge detection on 8-bit grayscale images in x86-64 assembly using AVX2, next to a scalar C baseline. Sobel and the blur, gradient, non-maximum suppression and double-threshold stages of Canny apply the same arithmetic to every pixel, so they map onto vector operations that process 16 pixels at a time. Hysteresis follows chains of pixels and is treated as the hard case. Each AVX2 stage is checked against its scalar version for identical output, and the project reports time and speedup for each stage and for the whole pipeline.
+
+## Description
+
+### Inputs
+
+- An 8-bit grayscale image file (PGM or BMP), with its width and height.
+- For Canny: the low and high thresholds and the Gaussian kernel.
+
+### Outputs
+
+- The Sobel edge image (0–255) from the scalar and the AVX2 versions.
+- The Canny edge map from the scalar and the AVX2 versions.
+- A mismatch report: the number of differing pixels per stage, and the first mismatch.
+- A timing table of scalar time, AVX2 time and speedup for each stage and the whole pipeline.
+
+### Scope
+
+**In scope:** 8-bit grayscale input, a scalar C reference for every stage, AVX2 assembly versions, and timing of scalar against AVX2.
 
 **Out of scope:** colour images and colour-to-gray conversion, multi-threading, GPU versions, AVX-512.
 
@@ -51,7 +67,17 @@ flowchart LR
 4. **Double threshold** marks pixels above the high threshold as strong, between the two thresholds as weak, and below the low threshold as none.
 5. **Hysteresis** keeps a weak pixel only if it connects to a strong one.
 
-## AVX2 design
+## Related work
+
+The Sobel operator comes from a 1968 talk by Irwin Sobel and Gary Feldman [2], and Canny defined his method in 1986 [1]. The parallel implementations reviewed so far target the GPU:
+
+- Ogawa, Ito and Nakano map Canny onto NVIDIA GPUs with CUDA and report about 61 times the speed of a conventional software implementation [3].
+- Park et al. run the blur, a 3×3 gradient operator, non-maximum suppression and thresholding as data-parallel CUDA steps and compare texture, global and shared memory. They report an average of 1.818 ms per frame with shared memory on an 8800GTS-512, and say little about how hysteresis is parallelized [4].
+- OpenCV offers a GPU Canny through its CUDA module, with low and high thresholds, an aperture size and an L2-gradient option [5].
+
+**How this project differs.** It targets the CPU's AVX2 vector units instead of a GPU, uses 16-bit integer arithmetic with explicit widen and narrow steps, and treats hysteresis as its own question by comparing a scalar flood fill with vector passes. It also reports a speedup for every stage, so the stage that limits the whole pipeline is visible.
+
+## Parallelization plan
 
 Each vector step handles 16 output pixels at once: a `ymm` register holds 16 `int16` values, which is enough room for every Sobel intermediate. The 256-bit integer instructions below need AVX2; the original AVX only widened floating-point operations to 256 bits.
 
@@ -70,8 +96,6 @@ Each vector step handles 16 output pixels at once: a `ymm` register holds 16 `in
 - **Tail pixels.** When the width is not a multiple of 16, the last partial block is finished by the scalar loop.
 - **Buffers.** Input and output are separate arrays, so a row is never overwritten while a neighbouring row still needs it.
 
-## Implementation plan
-
 Sobel comes first because every later stage reuses its widen, add and compare pattern. Hysteresis is the stage least likely to speed up.
 
 | Stage | AVX2 approach | Difficulty |
@@ -82,6 +106,32 @@ Sobel comes first because every later stage reuses its widen, add and compare pa
 | Non-maximum suppression | Compute the neighbour comparison for all four directions, then select the right result per pixel with a direction mask (`vpblendvb`) | Medium to high |
 | Double threshold | Two `vpcmpgtw` compares against the high and low thresholds, giving strong, weak and none masks | Low |
 | Hysteresis | Start with a scalar flood fill from strong pixels. Then try repeated vector passes that promote weak pixels with a strong 3×3 neighbour until nothing changes, and compare the two | High |
+
+### Not parallelized
+
+- Reading and writing the image files, done in C.
+- The comparison of scalar and AVX2 output and the timing code, done in C.
+- The border pixels, which are left at 0 in both versions.
+- The last partial block of each row when the width is not a multiple of 16, finished by the scalar loop.
+- Hysteresis in the first version, which uses a scalar flood fill until the vector passes are tried.
+
+## Target platform
+
+- **Processor:** an x86-64 CPU with AVX2. The exact model is recorded with the benchmark results.
+- **System and tools:** Windows 11, with Visual Studio for the C code and NASM for the assembly.
+- **Languages:** C for image reading and writing, the scalar baseline, verification and timing; NASM x86-64 assembly for the AVX2 stages.
+
+## Milestones
+
+The weeks follow the course specification; the actual deadlines are on Canvas.
+
+| Milestone | Week | What is delivered |
+| --- | --- | --- |
+| 1. Project proposal | 6 | This README as the proposal document, and a 5–8 minute video pitch |
+| 2. Mid-project update demo | 10 | Image reading and writing, scalar and AVX2 Sobel matching each other and timed, and the first scalar Canny stages checked |
+| 3. Complete submission and demo | 13 | AVX2 Canny stages matched to scalar, the filled benchmark table, source code, a discussion of the parallel algorithms, and the execution time comparison of sequential against parallel |
+
+**Pitch video (milestone 1):** _add the link or file path here._
 
 ## Verification
 
@@ -109,12 +159,6 @@ Results (fill in for each image size tested):
 | Hysteresis |  |  |  |
 | Whole Canny pipeline |  |  |  |
 
-## Requirements
-
-- An x86-64 CPU that supports AVX2.
-- A C compiler (the project is developed with Visual Studio on Windows).
-- NASM, if the kernels are written in assembly.
-
 ## Build and run
 
 _To be filled in once the code is in the repository._
@@ -128,3 +172,11 @@ _To be filled in once the code is in the repository._
 - [ ] AVX2 Canny stages, each matched to its scalar stage before starting the next
 - [ ] Benchmark on all test images and fill in the results table
 - [ ] Write up the results and what limited the speedup
+
+## References
+
+1. J. Canny, "A Computational Approach to Edge Detection," IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 8, no. 6, pp. 679–698, 1986. [Bibliographic entry](https://lucbrun.ensicaen.fr/GFINC/bibtex_entries/Canny86.html?lang=en)
+2. I. Sobel and G. Feldman, "Isotropic 3×3 Image Gradient Operator," talk at the Stanford Artificial Intelligence Laboratory, 1968; see I. Sobel, "History and Definition of the Sobel Operator," 2014, as cited on [Wikipedia: Sobel operator](https://en.wikipedia.org/wiki/Sobel_operator).
+3. K. Ogawa, Y. Ito and K. Nakano, "Efficient Canny Edge Detection Using a GPU," 2010 International Conference on Networking and Computing, IEEE, pp. 279–280, 2010. [Listing at hgpu.org](https://hgpu.org/?p=3211)
+4. S. I. Park, S. P. Ponce, J. Huang, Y. Cao and F. Quek, "Low-Cost, High-Speed Computer Vision Using NVIDIA's CUDA Architecture" (venue and year to be confirmed). [Paper](https://people.cs.vt.edu/~yongcao/publication/pdf/park_aipr08.pdf)
+5. OpenCV documentation, cv::cuda::CannyEdgeDetector class, version 3.4.9. [Documentation page](https://docs.opencv.org/3.4.9/d0/d43/classcv_1_1cuda_1_1CannyEdgeDetector.html)
