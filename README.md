@@ -107,7 +107,7 @@ G_y =
 \end{bmatrix}
 $$
 
-This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results. The separable form produces uniform and repeating weight patterns enables AVX2 to process multiple output positions in parallel.
+This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results. The separable form produces uniform and repeating weight patterns which exposes the data‑level parallelism needed for SIMD execution. AVX2 can apply these identical weights to 8 or more output positions at once using 256‑bit YMM registers.
 
 ### Sum-Difference Transformation for Diagonals
 Gd and Gdt are not separable, so we apply the sum‑difference method from Chang et al. (2023):
