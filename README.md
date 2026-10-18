@@ -29,7 +29,7 @@ G_x =
 \end{bmatrix} * I
 $$
 
-**Vertical Gradient(90◦)**
+**Vertical Gradient (90◦)**
 
 $$
 G_y =
@@ -55,7 +55,7 @@ G_d =
 \end{bmatrix} * I
 $$
 
-**Diagonal Gradient(135◦)**
+**Diagonal Gradient (135◦)**
 
 $$
 G_{dt} =
