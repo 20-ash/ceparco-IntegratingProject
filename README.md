@@ -15,6 +15,7 @@ This project addresses the gap by optimizing the four directional 5x5 Sobel oper
 
 ## Presentation pitch of the proposed project
 [Watch the project proposal video](https://drive.google.com/file/d/1-72TuUAJVy37nJjmVDsZhd3dUHP6azdz/view?usp=sharing)
+
 [PPT](https://canva.link/cnkb406mfp4stuf)
 
 ## Proposed Algorithm
