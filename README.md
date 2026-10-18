@@ -134,7 +134,7 @@ S =
 \end{bmatrix}
 $$
 
-The middle row contains only zeros, so its contribution can be skipped entirely.
+The middle row contains only zeros, so its contribution can be skipped entirely. Moreover, row 0 = -row 4 and row 1 = -row 3.
 
 $$
 D =
@@ -147,7 +147,7 @@ D =
 \end{bmatrix}
 $$
 
-The middle column contains only zeros, so its contribution can be skipped entirely.
+The middle column contains only zeros, so its contribution can be skipped entirely. Moreover, col 0 = -col 4 and col 1 = -col 3.
 
 ## References
 - Chang, Q., Li, X., Li, Y., & Miyazaki, J. (2023). Multi-directional Sobel operator kernel on GPUs. *Journal of Parallel and Distributed Computing, 177*, 160–170.
