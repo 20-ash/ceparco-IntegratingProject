@@ -13,7 +13,7 @@ Chang et al. (2023) expanded the Sobel operator to 5x5 size with four directiona
 
 This project addresses the gap by optimizing the four directional 5x5 Sobel operator for CPUs using **AVX2 SIMD** instructions. Through applying data-level parallelism, the group aims to achieve significant speedup compared to C implementation without requiring specialized hardware. Furthermore, the group will compare and evaluate the 5×5 versus 3×3 kernels, as well as two‑directional versus four‑directional implementations.
 
-## Proposal Video
+## Presentation pitch of the proposed project
 [Watch the project proposal video](https://drive.google.com/file/d/1-72TuUAJVy37nJjmVDsZhd3dUHP6azdz/view?usp=sharing)
 
 ## Proposed Algorithm
