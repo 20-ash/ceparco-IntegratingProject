@@ -9,7 +9,9 @@ CEPARCO SY2026-2027
 This project implements Sobel and Canny edge detection on 8-bit grayscale images in x86-64 assembly using AVX2, next to a scalar C baseline. Sobel and the blur, gradient, non-maximum suppression and double-threshold stages of Canny apply the same arithmetic to every pixel, so they map onto vector operations that process 16 pixels at a time. Hysteresis follows chains of pixels and is treated as the hard case. Each AVX2 stage is checked against its scalar version for identical output, and the project reports time and speedup for each stage and for the whole pipeline.
 
 ## Project Proposal Video
-- link here
+
+<!-- Replace the link below with your Google Drive share link. Set sharing to "Anyone with the link" so it opens without signing in. -->
+[Watch the project proposal video](https://drive.google.com/file/d/FILE_ID/view?usp=sharing)
 
 ## Description
 
