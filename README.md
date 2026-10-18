@@ -186,11 +186,6 @@ $$
 G = \sqrt{G_x^2 + G_y^2}
 $$
 
-## References
-- Chang, Q., Li, X., Li, Y., & Miyazaki, J. (2023). Multi-directional Sobel operator kernel on GPUs. *Journal of Parallel and Distributed Computing, 177*, 160–170.
-- Ben Fredj, H., Ltaif, M., Ammar, A., & Souani, C. (2017). Parallel implementation of Sobel filter using CUDA. *Proceedings of ICCAD '17*, 209–212.
-- Shi, L., & Zhao, Y. (2023). Edge detection of high-resolution remote sensing image based on multi-directional improved Sobel operator. *IEEE Access, 11*, 135979–135993.
-
 ## Implementation of the Proposed Project
 | Phase | Deliverables |
 |---|---|
@@ -208,3 +203,7 @@ $$
 | **3. 5×5 4-Direction Sobel (C)** |
 | **4. 5×5 4-Direction Sobel (AVX2/SIMD)** |
 
+## References
+- Chang, Q., Li, X., Li, Y., & Miyazaki, J. (2023). Multi-directional Sobel operator kernel on GPUs. *Journal of Parallel and Distributed Computing, 177*, 160–170.
+- Ben Fredj, H., Ltaif, M., Ammar, A., & Souani, C. (2017). Parallel implementation of Sobel filter using CUDA. *Proceedings of ICCAD '17*, 209–212.
+- Shi, L., & Zhao, Y. (2023). Edge detection of high-resolution remote sensing image based on multi-directional improved Sobel operator. *IEEE Access, 11*, 135979–135993.
