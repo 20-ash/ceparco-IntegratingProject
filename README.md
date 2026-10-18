@@ -17,6 +17,7 @@ This project addresses the gap by optimizing the four directional 5x5 Sobel oper
 The filters of the four-directional 5x5 Sobel operator are defined as follows (Cheng et al., 2023):
 
 **Horizontal Gradient (0◦)**
+
 $$
 G_x =
 \begin{bmatrix}
@@ -29,6 +30,7 @@ G_x =
 $$
 
 **Vertical Gradient(90◦)**
+
 $$
 G_y =
 \begin{bmatrix}
@@ -41,6 +43,7 @@ G_y =
 $$
 
 **Diagonal Gradient (45◦)**
+
 $$
 G_d =
 \begin{bmatrix}
@@ -53,6 +56,7 @@ G_d =
 $$
 
 **Diagonal Gradient(135◦)**
+
 $$
 G_{dt} =
 \begin{bmatrix}
