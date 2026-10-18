@@ -360,9 +360,6 @@ Scalar C, all three operators:
 | Scalar C |  | 1 |
 | AVX2 |  |  |
  
-## Build and run
- 
- 
 ## Roadmap
  
 Milestones follow the course schedule: proposal in Week 6, mid-project update demo in Week 10 and complete submission in Week 13.
