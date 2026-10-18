@@ -151,13 +151,15 @@ $$
 The middle column contains only zeros, so its contribution can be skipped entirely. Moreover, col 0 = -col 4 and col 1 = -col 3. This indicates that the group can just compute once and reuse with sign flip.
 
 ### 3x3 for C implementation
+The standard 3×3 two‑directional Sobel operator serves as our baseline for correctness and performance comparison. It uses only horizontal and vertical gradients:
+
 Horizontal Gradient (0◦)
 
 $$
 G_x =
 \begin{bmatrix}
 -1 & 0 & 1 \\
--2 & 0 & 1 \\
+-2 & 0 & 2 \\
 -1 & 0 & 1 \\
 \end{bmatrix} * I
 $$
@@ -172,6 +174,8 @@ G_y =
 1 & 2 & 1 \\
 \end{bmatrix} * I
 $$
+
+Final results are aggregated as follows:
 
 $$
 G = \sqrt{G_x^2 + G_y^2}
