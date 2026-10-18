@@ -8,6 +8,9 @@ CEPARCO SY2026-2027
 
 This project implements Sobel and Canny edge detection on 8-bit grayscale images in x86-64 assembly using AVX2, next to a scalar C baseline. Sobel and the blur, gradient, non-maximum suppression and double-threshold stages of Canny apply the same arithmetic to every pixel, so they map onto vector operations that process 16 pixels at a time. Hysteresis follows chains of pixels and is treated as the hard case. Each AVX2 stage is checked against its scalar version for identical output, and the project reports time and speedup for each stage and for the whole pipeline.
 
+## Project Proposal Video
+- link here
+
 ## Description
 
 ### Inputs
@@ -94,18 +97,6 @@ Sobel comes first because every later stage reuses its widen, add and compare pa
 - **Processor:** an x86-64 CPU with AVX2. The exact model is recorded with the benchmark results.
 - **System and tools:** Windows 11, with Visual Studio for the C code and NASM for the assembly.
 - **Languages:** C for PNG reading and writing (stb_image and stb_image_write), the scalar baseline, verification and timing; NASM x86-64 assembly for the AVX2 stages.
-
-## Milestones
-
-The weeks follow the course specification; the actual deadlines are on Canvas.
-
-| Milestone | Week | What is delivered |
-| --- | --- | --- |
-| 1. Project proposal | 6 | This README as the proposal document, and a 5–8 minute video pitch |
-| 2. Mid-project update demo | 10 | Image reading and writing, scalar and AVX2 Sobel matching each other and timed, and the first scalar Canny stages checked |
-| 3. Complete submission and demo | 13 | AVX2 Canny stages matched to scalar, the filled benchmark table, source code, a discussion of the parallel algorithms, and the execution time comparison of sequential against parallel |
-
-**Pitch video (milestone 1):** _add the link or file path here._
 
 ## Verification
 
