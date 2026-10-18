@@ -159,7 +159,16 @@ The middle column contains only zeros, so its contribution can be skipped entire
 |---|---|
 | **1. Basic Version** | Implement the algorithm in standard C and verify its correctness against OpenCV. |
 | **2. AVX2 Optimization** | Use AVX2 intrinsics to improve performance across all four gradient calculations. |
-| **3. Testing and Comparison** | Measure execution time and speedup against the basic version using images of sizes 512×512, 1024×1024, and 2048×2048. |
+| **3. Testing and Comparison** | Compare 5×5 4-Direction Sobel in standard C and SIMD. Measure execution time and speedup against the basic version using images of sizes 512×512, 1024×1024, and 2048×2048. |
 | **4. Final Output** | Provide the working source code and a report of the performance results. |
+
+### Implementation Versions
+
+| Version |
+|---|
+| **1. 3×3 2-Direction Sobel (C)** |
+| **2. 5×5 2-Direction Sobel (C)** | 
+| **3. 5×5 4-Direction Sobel (C)** |
+| **4. 5×5 4-Direction Sobel (AVX2/SIMD)** |
 
 ## Presentation Pitch of the Proposed Project
