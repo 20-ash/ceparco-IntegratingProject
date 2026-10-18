@@ -381,6 +381,14 @@ Milestones follow the course schedule: proposal in Week 6, mid-project update de
 - [ ] Benchmark on all test images and fill in the results tables
 - [ ] Write up the results and what limited the speedup
 
+## AI Usage
+ 
+The group used Claude during the proposal stage for the following:
+ 
+- **Revising this README.** Claude AI helped reword and restructure sections, make the notation and references consistent, and update the document when the project scope changed throughout revisions.
+- **Double-checking against the papers.** The AI was given source papers, which it used to check the kernel values, the numbers attributed to each paper, and the claims in the related work table. It also checked the overflow bounds and the sum-difference formulas, including a numerical check of the S and D kernels.
+- **Suggesting syntax for the parallelism plan.** Claude AI suggested AVX2 instructions and the order of steps for the plan above (for example, `vpmovzxbw`, `vpabsw`, `vpminuw` before `vpackuswb`, and `vpermq`). These suggestions were based on Intel Intrinsics Guide [6] and will be tested against the scalar version before being used.
+
 ## References
  
 [1] Q. Chang, X. Li, Y. Li and J. Miyazaki, "Multi-directional Sobel operator kernel on GPUs," *Journal of Parallel and Distributed Computing*, vol. 177, pp. 160–170, 2023, doi: 10.1016/j.jpdc.2023.03.004. Also available as arXiv:2305.00515.
