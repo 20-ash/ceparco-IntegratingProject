@@ -1,10 +1,8 @@
 # Sobel and Canny Edge Detection with AVX2
 
-Advanced Computer Architecture integrating project, 1st term 2026–2027 (data-level parallelism, SIMD/AVX2 assembly).
+CEPARCO, 1st term 2026–2027 (data-level parallelism, SIMD/AVX2 assembly).
 
 **Group members:** _add names and the stages each person owns._
-
-> **Status:** proposal. The design below is the plan; update each section as the code lands.
 
 ## Abstract
 
@@ -98,7 +96,7 @@ Each vector step handles 16 output pixels at once: a `ymm` register holds 16 `in
 
 Sobel comes first because every later stage reuses its widen, add and compare pattern. Hysteresis is the stage least likely to speed up.
 
-| Stage | AVX2 approach | Difficulty |
+| Stage | AVX2 approach |
 | --- | --- | --- |
 | Sobel | The steps in the table above, writing 16 pixels per iteration | Low |
 | Gaussian blur | Separable integer kernel (for example 1 2 1): widen to `int16`, shift and add for the weights, divide by the kernel sum with a shift | Low |
@@ -106,14 +104,6 @@ Sobel comes first because every later stage reuses its widen, add and compare pa
 | Non-maximum suppression | Compute the neighbour comparison for all four directions, then select the right result per pixel with a direction mask (`vpblendvb`) | Medium to high |
 | Double threshold | Two `vpcmpgtw` compares against the high and low thresholds, giving strong, weak and none masks | Low |
 | Hysteresis | Start with a scalar flood fill from strong pixels. Then try repeated vector passes that promote weak pixels with a strong 3×3 neighbour until nothing changes, and compare the two | High |
-
-### Not parallelized
-
-- Reading and writing the image files, done in C.
-- The comparison of scalar and AVX2 output and the timing code, done in C.
-- The border pixels, which are left at 0 in both versions.
-- The last partial block of each row when the width is not a multiple of 16, finished by the scalar loop.
-- Hysteresis in the first version, which uses a scalar flood fill until the vector passes are tried.
 
 ## Target platform
 
@@ -175,8 +165,4 @@ _To be filled in once the code is in the repository._
 
 ## References
 
-1. J. Canny, "A Computational Approach to Edge Detection," IEEE Transactions on Pattern Analysis and Machine Intelligence, vol. 8, no. 6, pp. 679–698, 1986. [Bibliographic entry](https://lucbrun.ensicaen.fr/GFINC/bibtex_entries/Canny86.html?lang=en)
-2. I. Sobel and G. Feldman, "Isotropic 3×3 Image Gradient Operator," talk at the Stanford Artificial Intelligence Laboratory, 1968; see I. Sobel, "History and Definition of the Sobel Operator," 2014, as cited on [Wikipedia: Sobel operator](https://en.wikipedia.org/wiki/Sobel_operator).
-3. K. Ogawa, Y. Ito and K. Nakano, "Efficient Canny Edge Detection Using a GPU," 2010 International Conference on Networking and Computing, IEEE, pp. 279–280, 2010. [Listing at hgpu.org](https://hgpu.org/?p=3211)
-4. S. I. Park, S. P. Ponce, J. Huang, Y. Cao and F. Quek, "Low-Cost, High-Speed Computer Vision Using NVIDIA's CUDA Architecture" (venue and year to be confirmed). [Paper](https://people.cs.vt.edu/~yongcao/publication/pdf/park_aipr08.pdf)
-5. OpenCV documentation, cv::cuda::CannyEdgeDetector class, version 3.4.9. [Documentation page](https://docs.opencv.org/3.4.9/d0/d43/classcv_1_1cuda_1_1CannyEdgeDetector.html)
+n 3.4.9. [Documentation page](https://docs.opencv.org/3.4.9/d0/d43/classcv_1_1cuda_1_1CannyEdgeDetector.html)
