@@ -14,6 +14,99 @@ Cheng et al. (2023) expanded the Sobel operator to 5x5 size with four directiona
 This project addresses the gap by optimizing the four directional 5x5 Sobel operator for CPUs using AVX2 SIMD instructions. Through applying data-level parallelism, the group sees the vision to achieve significant speedup without requiring specialized hardware.
 
 ## Proposed Algorithm
+The filters of the four-directional 5x5 Sobel operator are defined as follows (Cheng et al., 2023):
+
+**Horizontal Gradient (0◦)**
+$$
+G_x =
+\begin{bmatrix}
+-1 & -2 & 0 & 2 & 1 \\
+-4 & -8 & 0 & 8 & 4 \\
+-6 & -12 & 0 & 12 & 6 \\
+-4 & -8 & 0 & 8 & 4 \\
+-1 & -2 & 0 & 2 & 1
+\end{bmatrix} * I
+$$
+
+**Vertical Gradient(90◦)**
+$$
+G_y =
+\begin{bmatrix}
+-1 & -4 & -6 & -4 & -1 \\
+-2 & -8 & -12 & -8 & -2 \\
+0 & 0 & 0 & 0 & 0 \\
+2 & 8 & 12 & 8 & 2 \\
+1 & 4 & 6 & 4 & 1
+\end{bmatrix} * I
+$$
+
+**Diagonal Gradient (45◦)**
+$$
+G_d =
+\begin{bmatrix}
+-6 & -4 & -1 & -2 & 0 \\
+-4 & -12 & -8 & 0 & 2 \\
+-1 & -8 & 0 & 8 & 1 \\
+-2 & 0 & 8 & 12 & 4 \\
+0 & 2 & 1 & 4 & 6
+\end{bmatrix} * I
+$$
+
+**Diagonal Gradient(135◦)**
+$$
+G_{dt} =
+\begin{bmatrix}
+0 & -2 & -1 & -4 & -6 \\
+2 & 0 & -8 & -12 & -4 \\
+1 & 8 & 0 & -8 & -1 \\
+4 & 12 & 8 & 0 & -2 \\
+6 & 4 & 1 & 2 & 0
+\end{bmatrix} * I
+$$
+
+Final results are aggregated as follows:
+
+$$
+G = \sqrt{G_x^2 + G_y^2 + G_d^2 + G_{dt}^2}
+$$
+
+### Separate Convolution for G_x and G_y
+G_x and G_y can be expressed as the outer product of two 1-D vectors:
+
+$$
+G_x =
+\begin{bmatrix}
+1 \\
+4 \\
+6 \\
+4 \\
+1
+\end{bmatrix}
+\times
+\begin{bmatrix}
+-1 & -2 & 0 & 2 & 1
+\end{bmatrix}
+$$
+
+$$
+G_x =
+\begin{bmatrix}
+-1 \\
+-2 \\
+0 \\
+2 \\
+1
+\end{bmatrix}
+\times
+\begin{bmatrix}
+1 & 4 & 6 & 4 & 1
+\end{bmatrix}
+$$
+
+This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results.
+
+### Sum-Difference Transformation for Diagonals
+
 ## References
 - Chang, Q., Li, X., Li, Y., & Miyazaki, J. (2023). Multi-directional Sobel operator kernel on GPUs. *Journal of Parallel and Distributed Computing, 177*, 160–170.
 - Ben Fredj, H., Ltaif, M., Ammar, A., & Souani, C. (2017). Parallel implementation of Sobel filter using CUDA. *Proceedings of ICCAD '17*, 209–212.
