@@ -359,7 +359,7 @@ Milestones follow the course schedule: proposal in Week 6, mid-project update de
  
 [3] L. Shi and Y. Zhao, "Edge detection of high-resolution remote sensing image based on multi-directional improved Sobel operator," *IEEE Access*, vol. 11, pp. 135979–135993, 2023, doi: 10.1109/ACCESS.2023.3338355.
  
-[4] D. Gadler, "A comparison of the Sobel filter in C, OpenCV and CUDA," course report, Programming Tools for Parallel and Distributed Systems, University of Pisa, 2019. Report: https://github.com/DanyEle/Sobel_Filter/blob/master/SPD_Project_Report_Daniele_Gadler_5_0.pdf. Code: https://github.com/DanyEle/Sobel_Filter
+[4] D. Gadler, "A comparison of the Sobel filter in C, OpenCV and CUDA," course report, Programming Tools for Parallel and Distributed Systems, University of Pisa, 2019. Code: https://github.com/DanyEle/Sobel_Filter
  
 [5] ermig1979, "Simd Library," GitHub repository. https://github.com/ermig1979/Simd (accessed Oct. 2026).
  
