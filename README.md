@@ -14,9 +14,10 @@ Chang et al. (2023) expanded the Sobel operator to 5x5 size with four directiona
 This project addresses the gap by optimizing the four directional 5x5 Sobel operator for CPUs using **AVX2 SIMD** instructions. Through applying data-level parallelism, the group aims to achieve significant speedup compared to C implementation without requiring specialized hardware. Furthermore, the group will compare and evaluate the 5×5 versus 3×3 kernels, as well as two‑directional versus four‑directional implementations.
 
 ## Proposed Algorithm
+### 5x5
 The filters of the four-directional 5x5 Sobel operator are defined as follows (Chang et al., 2023):
 
-**Horizontal Gradient (0◦)**
+Horizontal Gradient (0◦)
 
 $$
 G_x =
@@ -29,7 +30,7 @@ G_x =
 \end{bmatrix} * I
 $$
 
-**Vertical Gradient (90◦)**
+Vertical Gradient (90◦)
 
 $$
 G_y =
@@ -42,7 +43,7 @@ G_y =
 \end{bmatrix} * I
 $$
 
-**Diagonal Gradient (45◦)**
+Diagonal Gradient (45◦)
 
 $$
 G_d =
@@ -55,7 +56,7 @@ G_d =
 \end{bmatrix} * I
 $$
 
-**Diagonal Gradient (135◦)**
+Diagonal Gradient (135◦)
 
 $$
 G_{dt} =
@@ -68,13 +69,13 @@ G_{dt} =
 \end{bmatrix} * I
 $$
 
-**Final results are aggregated as follows:**
+Final results are aggregated as follows:
 
 $$
 G = \sqrt{G_x^2 + G_y^2 + G_d^2 + G_{dt}^2}
 $$
 
-### Separate Convolution for G_x and G_y
+#### Separate Convolution for G_x and G_y
 G_x and G_y can be expressed as the outer product of two 1-D vectors:
 
 $$
@@ -109,7 +110,7 @@ $$
 
 This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results. The separable form produces uniform and repeating weight patterns which exposes the data‑level parallelism needed for SIMD execution. AVX2 can apply these identical weights to 8 or more output positions at once using 256‑bit YMM registers.
 
-### Sum-Difference Transformation for Diagonals
+#### Sum-Difference Transformation for Diagonals
 Gd and Gdt are not separable, so we apply the sum‑difference method from Chang et al. (2023):
 
 $$
@@ -148,6 +149,33 @@ D =
 $$
 
 The middle column contains only zeros, so its contribution can be skipped entirely. Moreover, col 0 = -col 4 and col 1 = -col 3. This indicates that the group can just compute once and reuse with sign flip.
+
+### 3x3 for C implementation
+Horizontal Gradient (0◦)
+
+$$
+G_x =
+\begin{bmatrix}
+-1 & 0 & 1 \\
+-2 & 0 & 1 \\
+-1 & 0 & 1 \\
+\end{bmatrix} * I
+$$
+
+Vertical Gradient (90◦)
+
+$$
+G_y =
+\begin{bmatrix}
+-1 & -2 & -1 \\
+0 & 0 & 0 \\
+1 & 2 & 1 \\
+\end{bmatrix} * I
+$$
+
+$$
+G = \sqrt{G_x^2 + G_y^2}
+$$
 
 ## References
 - Chang, Q., Li, X., Li, Y., & Miyazaki, J. (2023). Multi-directional Sobel operator kernel on GPUs. *Journal of Parallel and Distributed Computing, 177*, 160–170.
