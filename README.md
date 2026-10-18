@@ -68,7 +68,7 @@ G_{dt} =
 \end{bmatrix} * I
 $$
 
-Final results are aggregated as follows:
+**Final results are aggregated as follows:**
 
 $$
 G = \sqrt{G_x^2 + G_y^2 + G_d^2 + G_{dt}^2}
@@ -110,6 +110,44 @@ $$
 This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results.
 
 ### Sum-Difference Transformation for Diagonals
+Gd and Gdt are not separable, so we apply the sum‑difference method from Chang et al. (2023):
+
+$$
+\begin{aligned}
+S &= G_d + G_{dt} \\
+D &= G_d - G_{dt} \\
+G_d &= \frac{S + D}{2} \\
+G_{dt} &= \frac{S - D}{2}
+\end{aligned}
+$$
+
+Instead of computing two full 5x5 convolutions separately, the group will combine the kernels first, apply the combined forms (S and D), and then recover the original responses.
+
+$$
+S =
+\begin{bmatrix}
+-6 & -6 & -2 & -6 & -6 \\
+-2 & -16 & -16 & -12 & -2 \\
+0 & 0 & 0 & 0 & 0 \\
+2 & 16 & 16 & 12 & 2 \\
+6 & 6 & 2 & 6 & 6
+\end{bmatrix}
+$$
+
+The middle row contains only zeros, so its contribution can be skipped entirely.
+
+$$
+D =
+\begin{bmatrix}
+-6 & -2 & 0 & 2 & 6 \\
+-6 & -12 & 0 & 12 & 6 \\
+-2 & -16 & 0 & 16 & 2 \\
+-6 & -12 & 0 & 12 & 6 \\
+-6 & -2 & 0 & 2 & 6
+\end{bmatrix}
+$$
+
+The middle column contains only zeros, so its contribution can be skipped entirely.
 
 ## References
 - Chang, Q., Li, X., Li, Y., & Miyazaki, J. (2023). Multi-directional Sobel operator kernel on GPUs. *Journal of Parallel and Distributed Computing, 177*, 160–170.
