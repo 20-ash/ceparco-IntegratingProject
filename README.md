@@ -7,14 +7,14 @@
 - Xu, Kai Wen
 
 ## Description of the Project
-Edge detection is a foundational step in remote sensing, medical image processing, and industrial detection. The Sobel operator is the most widely adapted method to find the approximate absolute gradient magnitude at each pixel due to its simplicity and efficiency. However, standard implementations rely on a 3x3 kernel considering on horizontal and vertical directions. 
+Edge detection is a foundational step in remote sensing, medical image processing, and industrial detection. The Sobel operator is the most widely adapted method to find the approximate absolute gradient magnitude at each pixel due to its simplicity and efficiency. However, standard implementations rely on a 3x3 kernel considering only horizontal and vertical directions. 
 
-Cheng et al. (2023) expanded the Sobel operator to 5x5 size with four directional filters (0◦, 90◦, 45◦, 135◦) considering two additional diagonal directions. Results showed that compared to 3x3, the 5x5 operator is more insensitive to changes and less affected by noise since it takes more pixels or greater area into consideration. This helps provide clearer edge features which makes edge detection clearer and cleaner. Moreover, with the implementation of the four directional filter instead of two directional, more abundant textures were shown during edge detection. Their implementation, however, was optimized for NVIDIA GPUs using CUDA, which requires dedicated hardware and incurring data transfer overhead that limits deployment on standard systems.
+Chang et al. (2023) expanded the Sobel operator to 5x5 size with four directional filters (0◦, 90◦, 45◦, 135◦) considering two additional diagonal directions. Results showed that compared to 3x3, the 5x5 operator is more insensitive to changes and less affected by noise since it takes more pixels or greater area into consideration. This helps provide clearer edge features which makes edge detection clearer and cleaner. Moreover, with the implementation of the four directional filter instead of two directional, more abundant textures were shown during edge detection. Their implementation, however, was optimized for NVIDIA GPUs using CUDA, which requires dedicated hardware and incurring data transfer overhead that limits deployment on standard systems.
 
 This project addresses the gap by optimizing the four directional 5x5 Sobel operator for CPUs using AVX2 SIMD instructions. Through applying data-level parallelism, the group sees the vision to achieve significant speedup without requiring specialized hardware.
 
 ## Proposed Algorithm
-The filters of the four-directional 5x5 Sobel operator are defined as follows (Cheng et al., 2023):
+The filters of the four-directional 5x5 Sobel operator are defined as follows (Chang et al., 2023):
 
 **Horizontal Gradient (0◦)**
 
@@ -93,7 +93,7 @@ G_x =
 $$
 
 $$
-G_x =
+G_y =
 \begin{bmatrix}
 -1 \\
 -2 \\
@@ -107,7 +107,7 @@ G_x =
 \end{bmatrix}
 $$
 
-This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results.
+This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results. The separable form produces uniform and repeating weight patterns enables AVX2 to process multiple output positions in parallel.
 
 ### Sum-Difference Transformation for Diagonals
 Gd and Gdt are not separable, so we apply the sum‑difference method from Chang et al. (2023):
@@ -134,7 +134,7 @@ S =
 \end{bmatrix}
 $$
 
-The middle row contains only zeros, so its contribution can be skipped entirely. Moreover, row 0 = -row 4 and row 1 = -row 3.
+The middle row contains only zeros, so its contribution can be skipped entirely. Moreover, row 0 = -row 4 and row 1 = -row 3. This indicates that the group can just compute once and reuse with sign flip.
 
 $$
 D =
@@ -147,11 +147,19 @@ D =
 \end{bmatrix}
 $$
 
-The middle column contains only zeros, so its contribution can be skipped entirely. Moreover, col 0 = -col 4 and col 1 = -col 3.
+The middle column contains only zeros, so its contribution can be skipped entirely. Moreover, col 0 = -col 4 and col 1 = -col 3. This indicates that the group can just compute once and reuse with sign flip.
 
 ## References
 - Chang, Q., Li, X., Li, Y., & Miyazaki, J. (2023). Multi-directional Sobel operator kernel on GPUs. *Journal of Parallel and Distributed Computing, 177*, 160–170.
 - Ben Fredj, H., Ltaif, M., Ammar, A., & Souani, C. (2017). Parallel implementation of Sobel filter using CUDA. *Proceedings of ICCAD '17*, 209–212.
 - Shi, L., & Zhao, Y. (2023). Edge detection of high-resolution remote sensing image based on multi-directional improved Sobel operator. *IEEE Access, 11*, 135979–135993.
+
 ## Implementation of the Proposed Project
+| Phase | Deliverables |
+|---|---|
+| **1. Basic Version** | Implement the algorithm in standard C and verify its correctness against OpenCV. |
+| **2. AVX2 Optimization** | Use AVX2 intrinsics to improve performance across all four gradient calculations. |
+| **3. Testing and Comparison** | Measure execution time and speedup against the basic version using images of sizes 512×512, 1024×1024, and 2048×2048. |
+| **4. Final Output** | Provide the working source code and a report of the performance results. |
+
 ## Presentation Pitch of the Proposed Project
