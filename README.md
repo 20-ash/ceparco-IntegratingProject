@@ -164,5 +164,3 @@ _To be filled in once the code is in the repository._
 - [ ] Write up the results and what limited the speedup
 
 ## References
-
-n 3.4.9. [Documentation page](https://docs.opencv.org/3.4.9/d0/d43/classcv_1_1cuda_1_1CannyEdgeDetector.html)
