@@ -383,7 +383,7 @@ Milestones follow the course schedule: proposal in Week 6, mid-project update de
 
 ## AI Usage
  
-The group used Claude during the proposal stage for the following:
+The group used Claude AI, by Anthropic during the proposal stage for the following:
  
 - **Revising this README.** Claude AI helped reword and restructure sections, make the notation and references consistent, and update the document when the project scope changed throughout revisions.
 - **Double-checking against the papers.** The AI was given source papers, which it used to check the kernel values, the numbers attributed to each paper, and the claims in the related work table. It also checked the overflow bounds and the sum-difference formulas, including a numerical check of the S and D kernels.
