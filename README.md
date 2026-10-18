@@ -1,6 +1,6 @@
 # Sobel and Canny Edge Detection with AVX2
 
-CEPARCO, 1st term 2026–2027 (data-level parallelism, SIMD/AVX2 assembly).
+CEPARCO SY2026-2027
 
 **Group members:** _add names and the stages each person owns._
 
@@ -12,21 +12,15 @@ This project implements Sobel and Canny edge detection on 8-bit grayscale images
 
 ### Inputs
 
-- An 8-bit grayscale image file (PGM or BMP), with its width and height.
+- A PNG image (`input.png`), read with stb_image and converted to 8-bit grayscale when it is loaded. The width and height come from the file.
 - For Canny: the low and high thresholds and the Gaussian kernel.
 
 ### Outputs
 
-- The Sobel edge image (0–255) from the scalar and the AVX2 versions.
+- The Sobel edge image (0–255), written as a PNG (`output.png`), from the scalar and the AVX2 versions.
 - The Canny edge map from the scalar and the AVX2 versions.
 - A mismatch report: the number of differing pixels per stage, and the first mismatch.
 - A timing table of scalar time, AVX2 time and speedup for each stage and the whole pipeline.
-
-### Scope
-
-**In scope:** 8-bit grayscale input, a scalar C reference for every stage, AVX2 assembly versions, and timing of scalar against AVX2.
-
-**Out of scope:** colour images and colour-to-gray conversion, multi-threading, GPU versions, AVX-512.
 
 ## Algorithms
 
@@ -65,16 +59,6 @@ flowchart LR
 4. **Double threshold** marks pixels above the high threshold as strong, between the two thresholds as weak, and below the low threshold as none.
 5. **Hysteresis** keeps a weak pixel only if it connects to a strong one.
 
-## Related work
-
-The Sobel operator comes from a 1968 talk by Irwin Sobel and Gary Feldman [2], and Canny defined his method in 1986 [1]. The parallel implementations reviewed so far target the GPU:
-
-- Ogawa, Ito and Nakano map Canny onto NVIDIA GPUs with CUDA and report about 61 times the speed of a conventional software implementation [3].
-- Park et al. run the blur, a 3×3 gradient operator, non-maximum suppression and thresholding as data-parallel CUDA steps and compare texture, global and shared memory. They report an average of 1.818 ms per frame with shared memory on an 8800GTS-512, and say little about how hysteresis is parallelized [4].
-- OpenCV offers a GPU Canny through its CUDA module, with low and high thresholds, an aperture size and an L2-gradient option [5].
-
-**How this project differs.** It targets the CPU's AVX2 vector units instead of a GPU, uses 16-bit integer arithmetic with explicit widen and narrow steps, and treats hysteresis as its own question by comparing a scalar flood fill with vector passes. It also reports a speedup for every stage, so the stage that limits the whole pipeline is visible.
-
 ## Parallelization plan
 
 Each vector step handles 16 output pixels at once: a `ymm` register holds 16 `int16` values, which is enough room for every Sobel intermediate. The 256-bit integer instructions below need AVX2; the original AVX only widened floating-point operations to 256 bits.
@@ -96,7 +80,7 @@ Each vector step handles 16 output pixels at once: a `ymm` register holds 16 `in
 
 Sobel comes first because every later stage reuses its widen, add and compare pattern. Hysteresis is the stage least likely to speed up.
 
-| Stage | AVX2 approach |
+| Stage | AVX2 approach | Difficulty |
 | --- | --- | --- |
 | Sobel | The steps in the table above, writing 16 pixels per iteration | Low |
 | Gaussian blur | Separable integer kernel (for example 1 2 1): widen to `int16`, shift and add for the weights, divide by the kernel sum with a shift | Low |
@@ -109,7 +93,7 @@ Sobel comes first because every later stage reuses its widen, add and compare pa
 
 - **Processor:** an x86-64 CPU with AVX2. The exact model is recorded with the benchmark results.
 - **System and tools:** Windows 11, with Visual Studio for the C code and NASM for the assembly.
-- **Languages:** C for image reading and writing, the scalar baseline, verification and timing; NASM x86-64 assembly for the AVX2 stages.
+- **Languages:** C for PNG reading and writing (stb_image and stb_image_write), the scalar baseline, verification and timing; NASM x86-64 assembly for the AVX2 stages.
 
 ## Milestones
 
@@ -151,12 +135,12 @@ Results (fill in for each image size tested):
 
 ## Build and run
 
-_To be filled in once the code is in the repository._
 
 ## Roadmap
 
-- [ ] Read and write images in C (PGM or BMP) and build the 8×8 hand-checked test image
-- [ ] Scalar Sobel, checked against the paper result
+- [x] Read and write PNG images in C (stb_image and stb_image_write)
+- [x] Scalar Sobel in `main.c`
+- [ ] Build the 8×8 hand-checked test image and check the scalar Sobel against the paper result
 - [ ] AVX2 Sobel, matched to the scalar version, then timed
 - [ ] Scalar Canny stages, each checked on its own
 - [ ] AVX2 Canny stages, each matched to its scalar stage before starting the next
