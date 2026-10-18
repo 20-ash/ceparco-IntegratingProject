@@ -228,7 +228,7 @@ stb_image and stb_image_write [9] are small single-header C libraries. stb_image
 | Gadler [4] | 3×3 two-direction in C, OpenCV and CUDA on an MX 150 and a GTX 1080 | CUDA computation about 1.9× to 2.3× faster than C, with file I/O taking most of the total time | Adds an AVX2 version, the 5×5 operators and four directions, and, like [4], keeps file I/O out of the computation time |
 | Simd library [5] | SIMD-optimized image functions for x86 and ARM, including Sobel functions | Library functions | Hand-written AVX2 assembly of the 5×5 four-direction operator |
  
-None of the sources above implements the four-direction 5×5 operator with SIMD instructions, as far as our search found. The AVX2 version is therefore the part of this project that differs most from existing work.
+None of the sources above implements the four-direction 5×5 operator with SIMD instructions, as far as our search found. The AVX2 version of 5x5 four-directional Sobel is therefore the part of this project that differs most from existing work.
  
 ## Parallelization plan
  
