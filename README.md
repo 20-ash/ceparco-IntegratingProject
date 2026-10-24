@@ -73,13 +73,15 @@ G_{dt} =
 \end{bmatrix} * I
 $$
 
-Final results are aggregated as follows, and capped at 255:
+Final results are aggregated as follows:
 
+<mark>
 $$
-G = \min(255,\ |G_x| + |G_y| + |G_d| + |G_{dt}|)
+G = |G_x| + |G_y| + |G_d| + |G_{dt} 
 $$
+</mark>mark>
 
-The 5×5 two-direction operator uses only $G_x$ and $G_y$, with $G = \min(255,\ |G_x| + |G_y|)$.
+The 5×5 two-direction operator uses only $G_x$ and $G_y$, with <mark> $G = G = |G_x| + |G_y|$.</mark>
 
 Chang et al. [1] combine the directions with the square root of the sum of squares, $G = \sqrt{G_x^2 + G_y^2 + G_d^2 + G_{dt}^2}$. This project uses the sum of absolute values instead. The absolute value is needed because a gradient can be negative, and opposite signs would otherwise cancel each other. A sum is used instead of a square root so every step stays in integer arithmetic, the scalar and AVX2 outputs can be compared exactly, and AVX2 can process 16 pixels per step without a floating-point conversion. The sum only approximates the true gradient magnitude, so its values are larger than the square root version and vary somewhat with edge direction. This is acceptable because the project compares speed and agreement between versions, not edge quality. A four-direction 5×5 operator needs about eight times the arithmetic of the two-direction 3×3 operator [1]. Shi and Zhao [2] go further to 16 directions; this project stops at four. Canny edge detection, which uses Sobel as its gradient step, is outside the scope of this project.
 
