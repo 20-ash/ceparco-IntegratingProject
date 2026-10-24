@@ -8,8 +8,6 @@
 
 ## Abstract
 
-<mark>need revisions</mark>
-
 The Sobel operator is one of the most popular edge detection operators, with applications in remote sensing, medical image processing and industrial detection [1]. It finds the approximate absolute gradient magnitude at each pixel [1]. Standard implementations use a 3×3 kernel that considers only horizontal and vertical directions. Chang et al. [1] expanded the operator to a 5×5 size with four directional filters (0°, 90°, 45°, 135°), adding two diagonal directions. They state that the 5×5 operator is less affected by noise than the 3×3 operator and that four directions show more texture than two, which they compare visually in their Fig. 1. Their implementation targets NVIDIA GPUs using CUDA, which requires dedicated hardware.
 
 This project implements the four-direction 5×5 Sobel operator in scalar C and in x86-64 assembly using AVX2 SIMD instructions, which need no specialized hardware. The assembly version uses the separable form for the horizontal and vertical filters and the sum-difference transformation of [1] for the diagonal filters. Through data-level parallelism, the group aims to achieve speedup over the scalar C version. The group will also compare the 5×5 and 3×3 kernels, and the two-directional and four-directional implementations, in scalar C. The AVX2 output is checked against the scalar version, and execution time and speedup are measured at 512×512, 1024×1024 and 2048×2048.
