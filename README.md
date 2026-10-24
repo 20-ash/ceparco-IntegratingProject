@@ -79,7 +79,7 @@ Final results are aggregated as follows:
 $$
 G = |G_x| + |G_y| + |G_d| + |G_{dt} 
 $$
-</mark>mark>
+</mark>
 
 The 5×5 two-direction operator uses only $G_x$ and $G_y$, with <mark> $G = G = |G_x| + |G_y|$.</mark>
 
