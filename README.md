@@ -75,9 +75,9 @@ $$
 
 Final results are aggregated as follows:
 
-<mark> 
+<mark>
 $$
-G = |G_x| + |G_y| + |G_d| + |G_{dt}| 
+G = |G_x| + |G_y| + |G_d| + |G_{dt}|
 $$
 </mark>
 
