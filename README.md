@@ -421,8 +421,6 @@ The 5Ã—5 weights also fit in `int16`. The largest single gradient is 12240 (48 Ã
 - <mark>Gain from the transformations = direct time / optimized scalar time</mark>
 - <mark>Gain from SIMD = optimized scalar time / AVX2 time</mark>
 - <mark>Total = direct time / AVX2 time (the product of the two)</mark>
-
-<mark>If time allows, the optimized scalar version is also timed with auto-vectorization left on, to show what the compiler achieves without hand-written assembly.</mark>
  
 Results (fill in for each image size tested):
  
