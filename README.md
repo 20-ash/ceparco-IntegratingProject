@@ -227,7 +227,7 @@ $$
 ## Implementation of the Proposed Project
 | Phase | Deliverables |
 |---|---|
-| <mark>**1. Basic Version**</mark> | <mark>Implement the 3×3 two-direction, 5×5 two-direction and 5×5 four-direction operators in standard C, with Gd and Gdt computed directly from their weights (the direct reference). Verify the horizontal and vertical gradients against OpenCV `Sobel` and the diagonal gradients against OpenCV `filter2D`.</mark> |
+| **1. Basic Version** | Implement the 3×3 two-direction, 5×5 two-direction and 5×5 four-direction operators in standard C, with Gd and Gdt computed directly from their weights <mark>(the direct reference)</mark>. Verify the horizontal and vertical gradients against OpenCV `Sobel` and the diagonal gradients against OpenCV `filter2D`. |
 | <mark>**2. Optimized Scalar**</mark> | <mark>Write the 5×5 four-direction operator in scalar C with the same transformations as the AVX2 version (separable Gx and Gy, S and D, row buffers, max form). Check every gradient against the direct version. This is the speed baseline for AVX2.</mark> |
 | **3. AVX2 Optimization** | Write the 5×5 four-direction operator in AVX2 assembly (NASM): separable Gx and Gy, and S and D with the sum-difference transformation for the diagonals. |
 | <mark>**4. Testing and Comparison**</mark> | <mark>Compare every gradient, then the final image, of the optimized scalar and AVX2 versions against the direct version. Time the direct, optimized scalar and AVX2 versions of the 5×5 four-direction operator, and the 3×3 two-direction and 5×5 two-direction operators, using images of sizes 512×512, 1024×1024, and 2048×2048. Speedup of AVX2 is measured against the optimized scalar version.</mark> |
