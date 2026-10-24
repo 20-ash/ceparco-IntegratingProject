@@ -10,7 +10,8 @@
 
 The Sobel operator is one of the most popular edge detection operators, with applications in remote sensing, medical image processing and industrial detection [1]. It finds the approximate absolute gradient magnitude at each pixel [1]. Standard implementations use a 3×3 kernel that considers only horizontal and vertical directions. Chang et al. [1] expanded the operator to a 5×5 size with four directional filters (0°, 90°, 45°, 135°), adding two diagonal directions. They state that the 5×5 operator is less affected by noise than the 3×3 operator and that four directions show more texture than two, which they compare visually in their Fig. 1. Their implementation targets NVIDIA GPUs using CUDA, which requires dedicated hardware.
 
-This project implements the four-direction 5×5 Sobel operator in both <mark> 3×3 and 5×5 sizes, each as three kernels: a C base kernel, a C optimized kernel and an AVX2 kernel. The AVX2 SIMD instructions, which need no specialized hardware. The C base kernel computes every filter directly from its weights and is the golden reference for error checking. The C optimized kernel and the AVX2 kernel use the separable form for the horizontal and vertical filters and the sum-difference transformation of [1] for the diagonal filters. Through data-level parallelism, the group aims to achieve speedup over the C optimized kernel (the SIMD speedup, same algorithm) and the C base kernel (the total speedup). The group will also compare the 5×5 and 3×3 kernels, and the two-directional and four-directional implementations, in the C base kernel. Every optimized kernel is checked against the C base kernel gradient by gradient, before any absolute value or sum, and the base kernel is checked against hand-worked values and OpenCV.</mark> Execution time and speedup are measured at 512×512, 1024×1024 and 2048×2048.
+<mark>This project implements the four-direction 5×5 Sobel operator in three versions: a direct scalar C version, an optimized scalar C version and an AVX2 version. The AVX2 version is written in x86-64 assembly using SIMD instructions, which need no specialized hardware. The direct version computes every filter directly from its weights and is the golden reference for error checking. The optimized scalar and AVX2 versions use the separable form for the horizontal and vertical filters and the sum-difference transformation of [1] for the diagonal filters. Through data-level parallelism, the group aims to achieve speedup over the optimized scalar version (the SIMD speedup, same algorithm) and over the direct version (the total speedup). The group will also compare the 3×3 two-direction, 5×5 two-direction and 5×5 four-direction operators in scalar C. The optimized scalar and AVX2 versions are each checked against the direct version gradient by gradient, before any absolute value or sum, and the direct version is checked against hand-worked values and OpenCV.</mark> Execution time and speedup are measured at 512×512, 1024×1024 and 2048×2048.
+
 
 ## Presentation pitch of the proposed project
 [Watch the project proposal video](https://drive.google.com/file/d/1-72TuUAJVy37nJjmVDsZhd3dUHP6azdz/view?usp=sharing)
@@ -73,13 +74,15 @@ G_{dt} =
 \end{bmatrix} * I
 $$
 
-Final results are aggregated as follows:
+Final results are aggregated as follows, and capped at 255:
 
-<mark> $$ G = |G_x| + |G_y| + |G_d| + |G_{dt}| $$ </mark>
+$$
+G = \min(255,\ |G_x| + |G_y| + |G_d| + |G_{dt}|)
+$$
 
-The 5×5 two-direction operator uses only $G_x$ and $G_y$, with <mark> $G = G = |G_x| + |G_y|$.</mark>
+The 5×5 two-direction operator uses only $G_x$ and $G_y$, with $G = \min(255,\ |G_x| + |G_y|)$.
 
-Chang et al. [1] combine the directions with the square root of the sum of squares, $G = \sqrt{G_x^2 + G_y^2 + G_d^2 + G_{dt}^2}$. This project uses the sum of absolute values instead. The absolute value is needed because a gradient can be negative, and opposite signs would otherwise cancel each other. A sum is used instead of a square root so every step stays in integer arithmetic, the <mark>outputs of all kernels</mark> can be compared exactly, and AVX2 can process 16 pixels per step without a floating-point conversion. The sum only approximates the true gradient magnitude, so its values are larger than the square root version and vary somewhat with edge direction. This is acceptable because the project compares speed and agreement between kernels, not edge quality. A four-direction 5×5 operator needs about eight times the arithmetic of the two-direction 3×3 operator [1]. Shi and Zhao [2] go further to 16 directions; this project stops at four. Canny edge detection, which uses Sobel as its gradient step, is outside the scope of this project.
+Chang et al. [1] combine the directions with the square root of the sum of squares, $G = \sqrt{G_x^2 + G_y^2 + G_d^2 + G_{dt}^2}$. This project uses the sum of absolute values instead. The absolute value is needed because a gradient can be negative, and opposite signs would otherwise cancel each other. A sum is used instead of a square root so every step stays in integer arithmetic, the scalar and AVX2 outputs can be compared exactly, and AVX2 can process 16 pixels per step without a floating-point conversion. The sum only approximates the true gradient magnitude, so its values are larger than the square root version and vary somewhat with edge direction. This is acceptable because the project compares speed and agreement between versions, not edge quality. A four-direction 5×5 operator needs about eight times the arithmetic of the two-direction 3×3 operator [1]. Shi and Zhao [2] go further to 16 directions; this project stops at four. Canny edge detection, which uses Sobel as its gradient step, is outside the scope of this project.
 
 #### Separate Convolution for G_x and G_y
 G_x and G_y can be expressed as the outer product of two 1-D vectors:
@@ -184,9 +187,11 @@ $$
 G = \min(255,\ |G_x| + |G_y| + \max(|S|,\ |D|))
 $$
 
-The AVX2 version uses this form. Gd and Gdt are still recovered with the formulas above in the test build, so each can be compared with the scalar version on its own (see Verification).
+The AVX2 version uses this form. Gd and Gdt are still recovered with the formulas above in the test build, so each can be compared with the direct scalar version on its own (see Verification).
 
-The scalar C version computes Gd and Gdt directly from their 25 weights. This keeps the scalar version an independent reference, so a match between AVX2 and scalar also checks the sum-difference derivation.
+<mark>**Two scalar versions of the 5×5 four-direction operator.**</mark>
+- <mark>**Direct (reference).** Computes Gx, Gy, Gd and Gdt from their 25 weights, exactly as printed in [1]. It uses none of the transformations above, so it is independent of the derivation. Every other version is checked against it, and a match also confirms that the sum-difference derivation and the kernels are correct.</mark>
+- <mark>**Optimized (speed baseline).** Uses the same transformations as the AVX2 version: separable Gx and Gy, S and D with the A, B, V0 and V1 row buffers, and the max form of the diagonal term, with the same buffers, border rule and tail handling, one pixel at a time. AVX2 is timed against this version, so the speedup shows only the gain from SIMD. It is built so the compiler does not vectorize it (see Benchmarks).</mark>
 
 ### 3×3 for C implementation
 The standard 3×3 two-directional Sobel operator serves as our baseline for correctness and performance comparison. It uses only horizontal and vertical gradients:
@@ -222,24 +227,26 @@ $$
 ## Implementation of the Proposed Project
 | Phase | Deliverables |
 |---|---|
-| **1. Basic Version** | Implement the 3×3 two-direction, 5×5 two-direction and 5×5 four-direction operators in standard C, with Gd and Gdt computed directly from their weights. Verify the horizontal and vertical gradients against OpenCV `Sobel` and the diagonal gradients against OpenCV `filter2D`. |
-| **2. AVX2 Optimization** | Write the 5×5 four-direction operator in AVX2 assembly (NASM): separable Gx and Gy, and S and D with the sum-difference transformation for the diagonals. |
-| **3. Testing and Comparison** | Compare the 5×5 four-direction operator in standard C and AVX2, and compare the 3×3 two-direction, 5×5 two-direction and 5×5 four-direction operators in standard C. Measure execution time and speedup against the basic version using images of sizes 512×512, 1024×1024, and 2048×2048. |
-| **4. Final Output** | Provide the working source code and a report of the performance results. |
+| <mark>**1. Basic Version**</mark> | <mark>Implement the 3×3 two-direction, 5×5 two-direction and 5×5 four-direction operators in standard C, with Gd and Gdt computed directly from their weights (the direct reference). Verify the horizontal and vertical gradients against OpenCV `Sobel` and the diagonal gradients against OpenCV `filter2D`.</mark> |
+| <mark>**2. Optimized Scalar**</mark> | <mark>Write the 5×5 four-direction operator in scalar C with the same transformations as the AVX2 version (separable Gx and Gy, S and D, row buffers, max form). Check every gradient against the direct version. This is the speed baseline for AVX2.</mark> |
+| **3. AVX2 Optimization** | Write the 5×5 four-direction operator in AVX2 assembly (NASM): separable Gx and Gy, and S and D with the sum-difference transformation for the diagonals. |
+| <mark>**4. Testing and Comparison**</mark> | <mark>Compare every gradient, then the final image, of the optimized scalar and AVX2 versions against the direct version. Time the direct, optimized scalar and AVX2 versions of the 5×5 four-direction operator, and the 3×3 two-direction and 5×5 two-direction operators, using images of sizes 512×512, 1024×1024, and 2048×2048. Speedup of AVX2 is measured against the optimized scalar version.</mark> |
+| **5. Final Output** | Provide the working source code and a report of the performance results. |
 
 ### Inputs
  
 - A PNG image, read with stb_image [7] and converted to 8-bit grayscale when it is loaded. The width and height come from the file.
-- The operator to run: 3×3 two-direction, 5×5 two-direction or 5×5 four-direction in scalar C, or 5×5 four-direction in AVX2.
+- <mark>The operator to run: 3×3 two-direction, 5×5 two-direction, 5×5 four-direction direct or 5×5 four-direction optimized in scalar C, or 5×5 four-direction in AVX2.</mark>
+- <mark>A test mode that also writes out the raw gradients (see Verification).</mark>
 - Test images at 512×512, 1024×1024 and 2048×2048, the sizes used in [1].
 
 stb_image and stb_image_write [7] are small single-header C libraries. stb_image reads a PNG file into an array of pixel values, one byte per pixel when loaded as grayscale. stb_image_write saves an array of pixel values back out as a PNG. This keeps the PNG format out of the program, so every version works on a plain array of bytes.
  
 ### Outputs
  
-- The Sobel edge image (0–255), written as a PNG, from the scalar version of each operator and from the AVX2 version of the 5×5 four-direction operator.
-- A mismatch report: the number of differing pixels for the AVX2 version against the scalar version, and the first mismatch.
-- Timing tables: scalar time for each operator and image size, and scalar and AVX2 time and speedup for the 5×5 four-direction operator.
+- <mark>The Sobel edge image (0–255), written as a PNG, from the scalar version of each operator, from the optimized scalar version and from the AVX2 version of the 5×5 four-direction operator.</mark>
+- <mark>A mismatch report for each gradient (Gx, Gy, S, D, Gd, Gdt) and for the final image: the number of differing pixels for the optimized scalar and AVX2 versions against the direct version, and the first mismatch.</mark>
+- <mark>Timing tables: scalar time for each operator and image size, and direct, optimized scalar and AVX2 time and speedup for the 5×5 four-direction operator.</mark>
 
 ### Implementation Versions
 
@@ -247,8 +254,9 @@ stb_image and stb_image_write [7] are small single-header C libraries. stb_image
 |---|
 | **1. 3×3 2-Direction Sobel (C)** |
 | **2. 5×5 2-Direction Sobel (C)** | 
-| **3. 5×5 4-Direction Sobel (C)** |
-| **4. 5×5 4-Direction Sobel (AVX2/SIMD)** |
+| <mark>**3. 5×5 4-Direction Sobel (C, direct reference)**</mark> |
+| <mark>**4. 5×5 4-Direction Sobel (C, optimized scalar)**</mark> |
+| **5. 5×5 4-Direction Sobel (AVX2/SIMD)** |
 
 ## Related work
  
@@ -263,7 +271,7 @@ None of the sources above implements the four-direction 5×5 operator with SIMD 
  
 ## Parallelization plan
  
-Only the 5×5 four-direction operator is parallelized, with AVX2. The 3×3 and 5×5 two-direction operators stay scalar and serve as baselines. In the four-direction operator, the four filters (Gx, Gy, S and D) and the combine and clamp step are parallelized. Each output pixel depends only on its own neighbourhood in the input, so no output depends on another output.
+Only the 5×5 four-direction operator is parallelized, with AVX2. The 3×3 and 5×5 two-direction operators, <mark>the direct reference and the optimized scalar version</mark> stay scalar and serve as baselines. In the four-direction operator, the four filters (Gx, Gy, S and D) and the combine and clamp step are parallelized. Each output pixel depends only on its own neighbourhood in the input, so no output depends on another output.
  
 ### AVX2 pattern, shown on the 3×3 operator
  
@@ -301,19 +309,19 @@ The 5×5 weights also fit in `int16`. The largest single gradient is 12240 (48 �
 | Sum | `vpaddw` | |Gx| + |Gy| + the diagonal term, kept as `uint16` |
 | Clamp to 255 and narrow | `vpminuw` with 255, then `vpackuswb` | Clamp first, because `vpackuswb` reads its input as signed and a sum above 32767 would become 0 |
 | Restore pixel order | `vpermq` | Same reason as in the 3×3 table |
-| Test build only: recover Gd and Gdt | `vpaddw`, `vpsubw`, then `vpsraw` by 1 | (S + D) / 2 and (S − D) / 2 are exact because S and D are even. Used to compare each diagonal with the scalar version |
+| <mark>Test build only: store raw gradients, recover Gd and Gdt</mark> | <mark>store Gx, Gy, S and D as `int16` before the absolute value; `vpaddw`, `vpsubw`, then `vpsraw` by 1</mark> | <mark>(S + D) / 2 and (S − D) / 2 are exact because S and D are even. The stored buffers are compared with the direct version before any clamping (see Verification). The timed build skips this</mark> |
 
 **Calling convention.** On Windows x64, `xmm6` to `xmm15` are callee-saved. The assembly routine saves and restores any of them it uses, and executes `vzeroupper` before returning.
 
 ### Borders, tail pixels and buffers
  
-- **Borders.** The first version leaves the output border at 0 (skip), and the scalar reference does the same so the two compare exactly. The border is 1 pixel wide for the 3×3 operator and 2 pixels wide for the 5×5 operators. Zero, replicate and reflect are options to add later.
+- **Borders.** The first version leaves the output border at 0 (skip), and the scalar versions do the same so all versions compare exactly. The border is 1 pixel wide for the 3×3 operator and 2 pixels wide for the 5×5 operators. Zero, replicate and reflect are options to add later.
 - **Tail pixels.** When the width is not a multiple of 16, the last partial block is finished by the scalar loop. A vector block is used only when its 16 outputs and their 2-pixel margins all lie inside the row.
 - **Buffers.** Input and output are separate arrays, so a row is never overwritten while a neighbouring row still needs it. The row buffers for Gx, Gy, A, B, V0 and V1 are separate `int16` arrays.
 
 ### Not parallelized
  
-- The 3×3 and 5×5 two-direction operators, which stay scalar.
+- <mark>The 3×3 and 5×5 two-direction operators, the direct reference and the optimized scalar version, which stay scalar.</mark>
 - Reading and writing the PNG, and the grayscale conversion done when the image is loaded.
 - The border pixels, which stay 0, and the tail of each row, which the scalar loop finishes.
 - The verification and timing code.
@@ -326,9 +334,12 @@ The 5×5 weights also fit in `int16`. The largest single gradient is 12240 (48 �
 
 ## Verification
  
-The AVX2 version is checked against the scalar C version of the 5×5 four-direction operator on the same input, and the outputs must be identical byte for byte, because both use integer arithmetic only.
+<mark>The optimized scalar and AVX2 versions of the 5×5 four-direction operator are checked against the direct scalar version on the same input. Everything is integer arithmetic, so every comparison must be exact.</mark>
  
-- **Compare each gradient on its own.** Keep Gx, Gy, S, D, Gd and Gdt as separate buffers in the test build and compare each one before the combined result, so a mismatch points at one filter. The scalar S and D buffers are computed as Gd + Gdt and Gd − Gdt from the direct scalar diagonals. The AVX2 Gd and Gdt are recovered from its S and D.
+- <mark>**Gradient checks come first and are mandatory.** Capping at 255 hides errors: a gradient of 300 and one of 3000 both become 255, and most edge pixels of the 5×5 operator saturate. So before any absolute value, sum or clamp, the raw `int16` buffers Gx, Gy, S, D, Gd and Gdt of the optimized scalar and AVX2 versions are compared with the direct version, pixel by pixel. A run fails if any of the six differs at any pixel, whatever the final image looks like. A mismatch points at one filter. The final image is compared only after all six pass.</mark>
+- <mark>**Where each buffer comes from.** The direct version computes Gx, Gy, Gd and Gdt from the 25 weights, and S and D as Gd + Gdt and Gd − Gdt. The optimized scalar and AVX2 versions compute Gx, Gy, S and D with the transformations, and recover Gd and Gdt as (S + D) / 2 and (S − D) / 2. The AVX2 test build stores its buffers before the absolute value, and the timed build does not.</mark>
+- <mark>**Keep some results unsaturated.** The test images include low-contrast images, and the final-image comparison is also run on the result before the clamp (the sum as `uint16`), so the final check is not decided by pixels stuck at 255.</mark>
+- <mark>**Two checks, two jobs.** Direct against optimized scalar confirms that the derivation and the kernels are right. Optimized scalar against AVX2 confirms that the SIMD code is right. A match between the optimized versions alone would not catch a wrong derivation, since both use it.</mark>
 - **Check the scalar versions against OpenCV.** The scalar 3×3 and 5×5 two-direction outputs are compared with OpenCV `Sobel` (kernel sizes 3 and 5) [5], on interior pixels only, because OpenCV pads the border and this project leaves it at 0. OpenCV `Sobel` only computes the horizontal and vertical derivatives, so Gd and Gdt are checked with `filter2D` using the same kernel values.
 - **Report the difference.** Count the differing pixels and print the first mismatch with its x, y and both values.
 - **Use an 8×8 hand-checked image first.** Its output can be worked out on paper for the 3×3 operator with the 3×3 matrices above, and for one interior pixel of each 5×5 operator with the 5×5 matrices above, including S and D at that pixel.
@@ -337,26 +348,36 @@ The AVX2 version is checked against the scalar C version of the 5×5 four-direct
 
 ## Benchmarks
  
-The scalar version of each operator is timed on the same image. The 5×5 four-direction operator is also timed for AVX2. Speedup = scalar time / AVX2 time. Only the processing is timed, not loading or saving the image, because file I/O took most of the total time in [3] and would hide the speedup. Each time is the average of repeated runs. The scalar C baseline is built in the Visual Studio Release configuration, and its compiler flags are recorded with the benchmark results. The compiler's auto-vectorization report is checked, so the baseline is stated as scalar or auto-vectorized. The scalar table also shows how much the larger window and the two extra directions add to the 3×3 baseline, which [1] estimates at about eight times.
+<mark>The scalar version of each operator is timed on the same image. The 5×5 four-direction operator is timed three ways: direct scalar, optimized scalar and AVX2. Only the processing is timed, not loading or saving the image, because file I/O took most of the total time in [3] and would hide the speedup. Each time is the average of repeated runs. All C code is built in the Visual Studio Release configuration, and the compiler flags are recorded with the benchmark results. The scalar table also shows how much the larger window and the two extra directions add to the 3×3 baseline, which [1] estimates at about eight times.</mark>
 
-The scalar baseline computes the diagonals directly, while AVX2 uses the sum-difference method, so the AVX2 speedup combines the gain from SIMD and the gain from the cheaper diagonal computation.
+<mark>The optimized scalar version uses the same transformations as AVX2, so the speedup of AVX2 over it comes from SIMD alone. To keep it scalar, auto-vectorization is turned off for it (for example with `#pragma loop(no_vector)`), and the compiler's report is checked to confirm that no loop was vectorized. The direct version is timed to show what the transformations save without SIMD. The two gains are reported separately and together:</mark>
+
+- <mark>Gain from the transformations = direct time / optimized scalar time</mark>
+- <mark>Gain from SIMD = optimized scalar time / AVX2 time</mark>
+- <mark>Total = direct time / AVX2 time (the product of the two)</mark>
+
+<mark>If time allows, the optimized scalar version is also timed with auto-vectorization left on, to show what the compiler achieves without hand-written assembly.</mark>
  
 Results (fill in for each image size tested):
  
-Scalar C, all three operators:
+Scalar C, 3×3 and 5×5 operators:
  
 | Operator | Scalar time (ms) | Time relative to 3×3 two-direction |
 | --- | --- | --- |
 | 3×3 two-direction |  | 1 |
 | 5×5 two-direction |  |  |
-| 5×5 four-direction |  |  |
+| <mark>5×5 four-direction (direct)</mark> |  |  |
  
-5×5 four-direction operator, scalar against AVX2:
+5×5 four-direction operator:
  
-| Version | Time (ms) | Speedup over scalar |
-| --- | --- | --- |
-| Scalar C |  | 1 |
-| AVX2 |  |  |
+| <mark>Version</mark> | <mark>Time (ms)</mark> | <mark>Speedup over direct</mark> | <mark>Speedup over optimized scalar</mark> |
+| --- | --- | --- | --- |
+| <mark>Direct scalar C</mark> |  | <mark>1</mark> | <mark>-</mark> |
+| <mark>Optimized scalar C</mark> |  |  | <mark>1</mark> |
+| <mark>AVX2</mark> |  |  |  |
+ 
+## Build and run
+ 
  
 ## Roadmap
  
@@ -365,24 +386,25 @@ Milestones follow the course schedule: proposal in Week 6, mid-project update de
 ### Mid-project milestone (Week 10)
  
 - [ ] Read and write PNG images in C (stb_image and stb_image_write)
-- [ ] Build the 8×8 hand-checked test image and check the scalar Sobel against the hand-worked result
-- [ ] Scalar 3×3, 5×5 two-direction and 5×5 four-direction (diagonals computed directly), checked against OpenCV and the hand-checked values
-- [ ] AVX2 Gx and Gy for the 5×5 operator, matched to the scalar Gx and Gy
+- [ ] Build the 8×8 hand-checked test image and check the direct scalar Sobel against the hand-worked result
+- [ ] <mark>Scalar 3×3, 5×5 two-direction and 5×5 four-direction direct (diagonals computed from the 25 weights), checked against OpenCV and the hand-checked values</mark>
+- [ ] <mark>Optimized scalar 5×5 four-direction (separable Gx and Gy, S and D, max form), with all six raw gradients matched to the direct version before clamping</mark>
+- [ ] <mark>AVX2 Gx and Gy for the 5×5 operator, matched to the direct version's Gx and Gy before clamping</mark>
 
 ### Final submission (Week 13)
  
-- [ ] AVX2 S and D with the sum-difference transformation, with Gd and Gdt recovered in the test build and matched to the scalar Gd and Gdt
-- [ ] AVX2 combined 5×5 four-direction output, matched to the scalar version byte for byte
-- [ ] Benchmark on all test images and fill in the results tables
+- [ ] <mark>AVX2 S and D with the sum-difference transformation, with Gd and Gdt recovered in the test build, and all six raw gradients matched to the direct version before clamping</mark>
+- [ ] <mark>AVX2 combined 5×5 four-direction output, matched to the direct version byte for byte, after the gradient checks pass</mark>
+- [ ] <mark>Benchmark direct scalar, optimized scalar and AVX2 on all test images and fill in the results tables, including the split of the gain between the transformations and SIMD</mark>
 - [ ] Write up the results and what limited the speedup
 
 ## AI Usage
- 
+
 The group used Claude AI, by Anthropic during the proposal stage for the following:
  
 - **Revising this README.** Claude AI helped reword and restructure sections, make the notation and references consistent, and update the document when the project scope changed throughout revisions.
 - **Double-checking against the papers.** The AI was given source papers, which it used to check the kernel values, the numbers attributed to each paper, and the claims in the related work table. It also checked the overflow bounds and the sum-difference formulas, including a numerical check of the S and D kernels.
-- **Suggesting syntax for the parallelism plan.** Claude AI suggested AVX2 instructions and the order of steps for the plan above (for example, `vpmovzxbw`, `vpabsw`, `vpminuw` before `vpackuswb`, and `vpermq`). These suggestions were based on Intel Intrinsics Guide [6] and will be tested against the scalar version before being used.
+- **Suggesting syntax for the parallelism plan.** Claude AI suggested AVX2 instructions and the order of steps for the plan above (for example, `vpmovzxbw`, `vpabsw`, `vpminuw` before `vpackuswb`, and `vpermq`). These suggestions were based on Intel Intrinsics Guide [6] and will be tested against the direct scalar version before being used.
 
 ## References
  
