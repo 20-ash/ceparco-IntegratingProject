@@ -12,7 +12,6 @@ The Sobel operator is one of the most popular edge detection operators, with app
 
 <mark>This project implements the four-direction 5×5 Sobel operator in three versions: a direct scalar C version, an optimized scalar C version and an AVX2 version. The AVX2 version is written in x86-64 assembly using SIMD instructions, which need no specialized hardware. The direct version computes every filter directly from its weights and is the golden reference for error checking. The optimized scalar and AVX2 versions use the separable form for the horizontal and vertical filters and the sum-difference transformation of [1] for the diagonal filters. Through data-level parallelism, the group aims to achieve speedup over the optimized scalar version (the SIMD speedup, same algorithm) and over the direct version (the total speedup). The group will also compare the 3×3 two-direction, 5×5 two-direction and 5×5 four-direction operators in scalar C. The optimized scalar and AVX2 versions are each checked against the direct version gradient by gradient, before any absolute value or sum, and the direct version is checked against hand-worked values and OpenCV.</mark> Execution time and speedup are measured at 512×512, 1024×1024 and 2048×2048.
 
-
 ## Presentation pitch of the proposed project
 [Watch the project proposal video](https://drive.google.com/file/d/1-72TuUAJVy37nJjmVDsZhd3dUHP6azdz/view?usp=sharing)
 
@@ -74,15 +73,13 @@ G_{dt} =
 \end{bmatrix} * I
 $$
 
-Final results are aggregated as follows, and capped at 255:
+Final results are aggregated as follows:
 
-$$
-G = \min(255,\ |G_x| + |G_y| + |G_d| + |G_{dt}|)
-$$
+<mark> $$ G = |G_x| + |G_y| + |G_d| + |G_{dt}| $$ </mark>
 
-The 5×5 two-direction operator uses only $G_x$ and $G_y$, with $G = \min(255,\ |G_x| + |G_y|)$.
+The 5×5 two-direction operator uses only $G_x$ and $G_y$, with <mark> $G = G = |G_x| + |G_y|$.</mark>
 
-Chang et al. [1] combine the directions with the square root of the sum of squares, $G = \sqrt{G_x^2 + G_y^2 + G_d^2 + G_{dt}^2}$. This project uses the sum of absolute values instead. The absolute value is needed because a gradient can be negative, and opposite signs would otherwise cancel each other. A sum is used instead of a square root so every step stays in integer arithmetic, the scalar and AVX2 outputs can be compared exactly, and AVX2 can process 16 pixels per step without a floating-point conversion. The sum only approximates the true gradient magnitude, so its values are larger than the square root version and vary somewhat with edge direction. This is acceptable because the project compares speed and agreement between versions, not edge quality. A four-direction 5×5 operator needs about eight times the arithmetic of the two-direction 3×3 operator [1]. Shi and Zhao [2] go further to 16 directions; this project stops at four. Canny edge detection, which uses Sobel as its gradient step, is outside the scope of this project.
+Chang et al. [1] combine the directions with the square root of the sum of squares, $G = \sqrt{G_x^2 + G_y^2 + G_d^2 + G_{dt}^2}$. This project uses the sum of absolute values instead. The absolute value is needed because a gradient can be negative, and opposite signs would otherwise cancel each other. A sum is used instead of a square root so every step stays in integer arithmetic, the <mark>outputs of all kernels</mark> can be compared exactly, and AVX2 can process 16 pixels per step without a floating-point conversion. The sum only approximates the true gradient magnitude, so its values are larger than the square root version and vary somewhat with edge direction. This is acceptable because the project compares speed and agreement between kernels, not edge quality. A four-direction 5×5 operator needs about eight times the arithmetic of the two-direction 3×3 operator [1]. Shi and Zhao [2] go further to 16 directions; this project stops at four. Canny edge detection, which uses Sobel as its gradient step, is outside the scope of this project.
 
 #### Separate Convolution for G_x and G_y
 G_x and G_y can be expressed as the outer product of two 1-D vectors:
@@ -117,10 +114,10 @@ G_y =
 \end{bmatrix}
 $$
 
-This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results. The separable form produces uniform and repeating weight patterns which exposes the data-level parallelism needed for SIMD execution. AVX2 can apply these identical weights to 16 output positions at once, because each pixel is widened to 16 bits and a 256-bit YMM register holds 16 of them.
+This means that each gradient can be computed first by applying the row vector horizontally across every row, then applying the column vector vertically to the intermediate results. The separable form produces uniform and repeating weight patterns which exposes the data-level parallelism needed for SIMD execution. AVX2 can apply these identical weights to 16 output positions at once, because each pixel is widened to 16 bits and a 256-bit YMM register holds 16 of them. <mark>The separable form also reduces the work for any implementation, scalar or SIMD, from 25 multiply-adds to 5 + 5 per pixel.</mark>
 
 #### Sum-Difference Transformation for Diagonals
-Gd and Gdt are not separable, so the project applies the sum-difference method from [1] in the AVX2 version. Instead of filtering with Gd and Gdt, the image is filtered with their sum and difference kernels:
+Gd and Gdt are not separable, so the project applies the sum-difference method from [1] in the <mark>C optimized and AVX2 kernels</mark>. Instead of filtering with Gd and Gdt, the image is filtered with their sum and difference kernels:
 
 $$
 \begin{aligned}
@@ -181,17 +178,15 @@ $$
 |G_d| + |G_{dt}| = \max(|S|,\ |D|)
 $$
 
-so the final result can be written, with no halving step, as
-
+so the <mark>magnitude</mark> can be written, with no halving step, as
+<mark>
 $$
-G = \min(255,\ |G_x| + |G_y| + \max(|S|,\ |D|))
-$$
+G = |G_x| + |G_y| + \max(|S|,\ |D|)
+$$ </mark>
 
-The AVX2 version uses this form. Gd and Gdt are still recovered with the formulas above in the test build, so each can be compared with the direct scalar version on its own (see Verification).
+The <mark>C optimized and AVX2 kernels use</mark> this form. Gd and Gdt are still recovered with the formulas above in the test build, so each can be compared with the <mark>C base kernel</mark> on its own (see Verification).
 
-<mark>**Two scalar versions of the 5×5 four-direction operator.**</mark>
-- <mark>**Direct (reference).** Computes Gx, Gy, Gd and Gdt from their 25 weights, exactly as printed in [1]. It uses none of the transformations above, so it is independent of the derivation. Every other version is checked against it, and a match also confirms that the sum-difference derivation and the kernels are correct.</mark>
-- <mark>**Optimized (speed baseline).** Uses the same transformations as the AVX2 version: separable Gx and Gy, S and D with the A, B, V0 and V1 row buffers, and the max form of the diagonal term, with the same buffers, border rule and tail handling, one pixel at a time. AVX2 is timed against this version, so the speedup shows only the gain from SIMD. It is built so the compiler does not vectorize it (see Benchmarks).</mark>
+The <mark>C base kernel</mark> computes Gd and Gdt directly from their 25 weights. This keeps <mark>it</mark> an independent reference, so a match <mark>between an optimized kernel and the base kernel</mark> also checks the sum-difference derivation.
 
 ### 3×3 for C implementation
 The standard 3×3 two-directional Sobel operator serves as our baseline for correctness and performance comparison. It uses only horizontal and vertical gradients:
@@ -218,11 +213,82 @@ G_y =
 \end{bmatrix} * I
 $$
 
-Final results are aggregated as follows, and capped at 255:
+Final results are aggregated as follows:
+<mark> $$
+G = |G_x| + |G_y|
+$$ </mark>
+
+<mark>
+ 
+### 3×3 diagonal gradients and sum-difference
+
+The 3×3 operator is extended to four directions. The diagonal kernels below follow the sign pattern of the 5×5 Gd and Gdt (negative towards the top-left for Gd, towards the top-right for Gdt). The 3×3 diagonal kernels and the 3×3 sum-difference are this project's own definition and derivation, not taken from [1], which treats the 5×5 operator. They are checked by the C base kernel against OpenCV filter2D and by hand.
+
+Diagonal Gradient (G_d)
+$$
+G_x =
+\begin{bmatrix}
+-2 & -1 & 0 \\
+-1 & 0 & 1 \\
+-0 & 1 & 2 \\
+\end{bmatrix} * I
+$$
+
+Diagonal Gradient (Gd_t)
+$$
+G_x =
+\begin{bmatrix}
+0 & -1 & -2 \\
+1 & 0 & -1 \\
+2 & 1 & 0 \\
+\end{bmatrix} * I
+$$
+
+With $S = G_d + G_{dt}$ and $D = G_d - G_{dt}$:
 
 $$
-G = \min(255,\ |G_x| + |G_y|)
+S =
+\begin{bmatrix}
+-2 & -2 & -2 \\
+0 & 0 & 0 \\
+2 & 2 & 2
+\end{bmatrix}
+\qquad
+D =
+\begin{bmatrix}
+-2 & 0 & 2 \\
+-2 & 0 & 2 \\
+-2 & 0 & 2
+\end{bmatrix}
 $$
+
+As in the 5×5 case, S has a zero middle row, D has a zero middle column, and both are even, so $G_d = (S + D)/2$ and $G_{dt} = (S - D)/2$ are exact and $|G_d| + |G_{dt}| = \max(|S|, |D|)$. Unlike the 5×5 case, both S and D are separable here, and everything can be built from three horizontal row results, computed once per input row:
+
+$$\
+\begin{aligned}
+HD(x) &= p(x+1) - p(x-1) \\
+HS(x) &= p(x-1) + 2p(x) + p(x+1) \\
+H3(x) &= p(x-1) + p(x) + p(x+1)
+\end{aligned}
+$$
+
+and then combined vertically:
+
+$$
+\begin{aligned}
+G_x(y) &= HD(y-1) + 2\,HD(y) + HD(y+1) \\
+G_y(y) &= HS(y+1) - HS(y-1) \\
+S(y) &= 2\,\big(H3(y+1) - H3(y-1)\big) \\
+D(y) &= 2\,\big(HD(y-1) + HD(y) + HD(y+1)\big)
+\end{aligned}
+$$
+$$
+
+G = |G_x| + |G_y| + \max(|S|,\ |D|) \qquad (\text{at most } 3570)
+$$
+
+The C base kernel instead filters with the four 3×3 matrices directly (9 taps each).
+</mark>
 
 ## Implementation of the Proposed Project
 | Phase | Deliverables |
